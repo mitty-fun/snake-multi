@@ -1,10 +1,9 @@
-var gameStatus = 'start-menu';
+var status = 'menu';
 var map = [];
 var width = 41;
 var height = 41;
-var t = 0;
-var speed = 40;
-var temp;
+var cumTime = 0;
+var speed = 45;
 
 var cvs = document.getElementById('myCanvas');
 var ctx = cvs.getContext('2d');
@@ -59,7 +58,7 @@ var number = [
 document.onkeydown = keyevent;
 function keyevent () {
     // console.log(event.keyCode)
-    if (gameStatus == 'gameing') {
+    if (status == 'playing') {
         // right
         var dir = map[player1.head.x][player1.head.y];
         if (event.keyCode == 39 && dir != 'left') {
@@ -78,13 +77,27 @@ function keyevent () {
             map[player1.head.x][player1.head.y] = 'down';
         }
     }
-    // enter
-    else if (event.keyCode == 13) {
-        if (gameStatus == 'start-menu') {
-        };
+    if (status == 'gameover') {
+        // enter
+        if (event.keyCode == 13) {
+            narrow();
+            status = 'menu';
+        }
     }
 }
 
+
+function countdown(callback) {
+    var i = 0;
+    this.count = function () {
+        showWords(number[i]);
+        i ++;
+        if (i >= number.length) {return true}
+        else { setTimeout('count()',1000) }; 
+    }
+    this.count();
+    setTimeout(callback, 5000);
+}
 
 
 function gameInit () {
@@ -97,31 +110,18 @@ function gameInit () {
 }
 
 
-
-function count(callback) {
-    var i = 0;
-    this.countdown = function () {
-        console.log(i)
-        showWords(number[i]);
-        i ++;
-        if (i > number.length) {return true}
-        else { setTimeout('countdown()',1000) }; 
-    }
-    this.countdown();
-    setTimeout(callback, 5000);
-}
-
-
-
 function clock () {
-    t += 0.01;
-    if (t >= (1/speed)) {
+    var temp;
+    cumTime += 0.01;
+    if (cumTime >= (1/speed)) {
         temp = run();
-        t = 0;
+        cumTime = 0;
     }
     if (temp != 'gameOver') {
         setTimeout('clock()',20);
-    }       
+    } else {
+        status = 'gameover';
+    }
 }
 
 function run () {
@@ -150,11 +150,7 @@ function createFood () {
 }
 
 
-
-
-
-
-function snake (head, tail) {
+snake = function (head, tail) {
     this.head = {x: head.x, y: head.y};
     this.tail = {x: tail.x, y:tail.y};
     this.body = 1;

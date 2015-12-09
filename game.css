@@ -1,4 +1,4 @@
-@import url(https://fonts.googleapis.com/css?family=Montserrat);
+@import url(https://fonts.googleapis.com/css?family=Orbitron);
 body {
   display: flex;
   align-items: center;
@@ -21,11 +21,9 @@ body {
   position: relative; }
 
 #menu {
-  width: 250px;
-  margin: auto;
+  margin: 20px auto;
   color: #fff;
-  text-align: center;
-  font-family: 'Montserrat', sans-serif; }
+  text-align: center; }
   #menu input {
     width: 200px;
     height: 25px;
@@ -38,9 +36,14 @@ body {
   #menu span {
     margin: 10px;
     font-size: 1.5em;
-    display: block; }
+    display: block;
+    font-family: 'Orbitron', sans-serif; }
     #menu span:hover {
       color: #ff8300; }
+  #menu #end {
+    margin: 25px 0px;
+    font-size: 1em; }
   #menu #titan {
+    font-family: 'Orbitron', sans-serif;
     margin: 0px 0px 35px 0px;
     font-size: 3em; }
