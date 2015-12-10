@@ -1,9 +1,9 @@
 var status = 'menu';
+var multi = false;
 var map = [];
 var width = 41;
 var height = 41;
-var cumTime = 0;
-var speed = 45;
+var speed = 13;
 
 var cvs = document.getElementById('myCanvas');
 var ctx = cvs.getContext('2d');
@@ -96,29 +96,46 @@ function countdown(callback) {
         else { setTimeout('count()',1000) }; 
     }
     this.count();
+    // init player1
     setTimeout(callback, 5000);
 }
 
 
-function gameInit () {
-    createNewMap();
-    createFood();
-    player1 = new snake({x:11, y:21}, {x:11, y:21});
-    map[11][21] = 'right';
+function gameInit (data) {
+    map.createNewMap(); 
+    if (!data) {
+        // multi mod
+        if (multi) {
+            player1 = new snake({x:11, y:21}, {x:11, y:21});
+            map[11][21] = 'top';
+            player2 = new snake({x:31, y:21}, {x:31, y:21});
+            map[11][21] = 'down';
+            map.createFood();
+            map[0][0] = 'XDDD';
 
-    clock();
+            sendEvents({"event": "gameInit", map: map});
+        } 
+        //singo mod
+        else {
+            player1 = new snake({x:11, y:21}, {x:11, y:21});
+            map[11][21] = 'right';
+        }
+    }
+    else {
+        for (i = 0; i < width; i++) {
+            map[i] = data.map[i];
+        }
+        sendEvents({event: "clock"});
+    }
+    map.createFood();
 }
 
 
 function clock () {
     var temp;
-    cumTime += 0.01;
-    if (cumTime >= (1/speed)) {
-        temp = run();
-        cumTime = 0;
-    }
+    temp = run();
     if (temp != 'gameOver') {
-        setTimeout('clock()',20);
+        setTimeout('clock()', 1000/speed);
     } else {
         status = 'gameover';
     }
@@ -130,25 +147,27 @@ function run () {
 }
 
 
-function createNewMap () {
-    map = [];
+/******************** game array **********************/
+
+map.createNewMap = function () {
     for (var c1 = 0; c1 < width; c1++) {
-        map[c1] = [];
+        this[c1] = [];
         for (var c2 = 0; c2 < height; c2++){
-            map[c1][c2] = 'empty';
+            this[c1][c2] = 'empty';
         }  
     }
 }
 
 
-function createFood () {
+map.createFood = function () {
     do {
         var c1 = Math.floor(Math.random()*height);
         var c2 = Math.floor(Math.random()*width);
     } while (map[c1][c2] != 'empty');
-    map[c1][c2] = 'food';
+    this[c1][c2] = 'food';
 }
 
+/*********************** snake *************************/
 
 snake = function (head, tail) {
     this.head = {x: head.x, y: head.y};
@@ -206,7 +225,7 @@ snake.prototype.moveHead = function () {
         this.moveTail();
     }else if (next == 'food') {
         this.body += 1;
-        createFood();
+        map.createFood();
     }else {
         console.log('gameOver')
         return 'gameOver';
@@ -267,3 +286,90 @@ function draw () {
 
 showWords(logo);
 console.log('stop')
+
+
+/************************ connect *************************/
+
+var your_peer_id;
+var another_peer_id;
+var peer;
+var conn;
+
+
+function connectInit () {
+    // generate your ID number  0 ~ 999999
+    your_peer_id = Math.floor(Math.random()*1000000).toString();
+    console.log('your ID number: ' + your_peer_id);
+    
+    // show your ID number
+    $('#your_number').text(your_peer_id);
+    
+    // input another ID number keypress "enter" to send request connect 
+    $('#another_number').keypress(function(e) {
+        code = e.keyCode ? e.keyCode : e.which;
+        if(code == 13) {
+            another_peer_id = $(this).val();
+            $(this).val('');
+            connect();
+        }
+    });
+
+    // peerAPI key ->> ravoxvbzqf2sm7vi
+    peer = new Peer(your_peer_id, {key:'ravoxvbzqf2sm7vi'});
+    
+    peer.on('connection', function(conn) {
+        conn.on('data', function(data) {
+            //data is JSON
+            handleEvents(data);
+        });
+    });
+}
+
+function connect () {
+    // connect another id
+    console.log('connect to: ' + another_peer_id);
+    conn = peer.connect(another_peer_id);
+    
+    // setting listen
+    conn.on('open', function(){
+        conn.send('{"event":"connectReq","id":' + your_peer_id + '}');
+    });
+
+}
+
+function handleEvents (data) {
+    var json = JSON.parse(data);
+    console.log(json);
+    var eventName = json.event;
+    listener[eventName](json);
+}
+
+function sendEvents (data) {
+    conn.send(JSON.stringify(data));
+}
+
+
+function connectReq (data) {
+    // two-way connect
+    another_peer_id = data.id;
+    console.log('connect to: ' + another_peer_id);
+    conn = peer.connect(another_peer_id);
+    conn.on('open', function(){
+        // both start in to role choose
+        // conn.send('{"event":"startGame"}');
+        multi = true;
+        gameInit();
+    });
+}
+
+function startGame () {
+    expand();
+}
+
+var listener = {};
+listener.connectReq = connectReq;
+listener.gameInit = gameInit;
+listener.startGame = startGame;
+
+
+connectInit();

@@ -52,15 +52,21 @@ body{
         }
     }
 
+    #titan{
+        font-family: 'Orbitron', sans-serif;
+        margin: 0px 0px 35px 0px;
+        font-size: 3em;
+    }
+
     #end{
         margin: 25px 0px; 
         font-size: 1em;
     }
 
-    #titan{
-        font-family: 'Orbitron', sans-serif;
-        margin: 0px 0px 35px 0px;
-        font-size: 3em;
+    #your_number{
+        display: inline;
+        font-size: 1em;
+        color:  #ff8300;
     }
     
 

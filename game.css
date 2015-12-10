@@ -40,10 +40,14 @@ body {
     font-family: 'Orbitron', sans-serif; }
     #menu span:hover {
       color: #ff8300; }
-  #menu #end {
-    margin: 25px 0px;
-    font-size: 1em; }
   #menu #titan {
     font-family: 'Orbitron', sans-serif;
     margin: 0px 0px 35px 0px;
     font-size: 3em; }
+  #menu #end {
+    margin: 25px 0px;
+    font-size: 1em; }
+  #menu #your_number {
+    display: inline;
+    font-size: 1em;
+    color: #ff8300; }
