@@ -1,15 +1,20 @@
+// menu, playing, gameOver
 var status = 'menu';
-var multi = false;
+// undefined(singo), host, client
+var role = '';
+
 var map = [];
 var width = 41;
 var height = 41;
-var speed = 13;
+
+// millisecond/times
+var moveTime = 100;
+var timer;
 
 var cvs = document.getElementById('myCanvas');
 var ctx = cvs.getContext('2d');
 
-var player1;
-var player2;
+var player1, player2;
 
 var logo = {
     15:[15, 17],
@@ -54,132 +59,22 @@ var number = [
     },
 ]
 
-
-document.onkeydown = keyevent;
-function keyevent () {
-    // console.log(event.keyCode)
-    if (status == 'playing') {
-        // right
-        var dir = map[player1.head.x][player1.head.y];
-        if (event.keyCode == 39 && dir != 'left') {
-            map[player1.head.x][player1.head.y] = 'right';
-        }
-        // left
-        else if (event.keyCode == 37 && dir != 'right') {
-            map[player1.head.x][player1.head.y] = 'left';
-        }
-        // up
-        else if (event.keyCode == 38 && dir != 'down') {
-            map[player1.head.x][player1.head.y] = 'up';
-        }
-        // down
-        else if (event.keyCode == 40 && dir != 'up') {
-            map[player1.head.x][player1.head.y] = 'down';
-        }
-    }
-    if (status == 'gameover') {
-        // enter
-        if (event.keyCode == 13) {
-            narrow();
-            status = 'menu';
-        }
-    }
-}
-
-
-function countdown(callback) {
-    var i = 0;
-    this.count = function () {
-        showWords(number[i]);
-        i ++;
-        if (i >= number.length) {return true}
-        else { setTimeout('count()',1000) }; 
-    }
-    this.count();
-    // init player1
-    setTimeout(callback, 5000);
-}
-
-
-function gameInit (data) {
-    map.createNewMap(); 
-    if (!data) {
-        // multi mod
-        if (multi) {
-            player1 = new snake({x:11, y:21}, {x:11, y:21});
-            map[11][21] = 'top';
-            player2 = new snake({x:31, y:21}, {x:31, y:21});
-            map[11][21] = 'down';
-            map.createFood();
-            map[0][0] = 'XDDD';
-
-            sendEvents({"event": "gameInit", map: map});
-        } 
-        //singo mod
-        else {
-            player1 = new snake({x:11, y:21}, {x:11, y:21});
-            map[11][21] = 'right';
-        }
-    }
-    else {
-        for (i = 0; i < width; i++) {
-            map[i] = data.map[i];
-        }
-        sendEvents({event: "clock"});
-    }
-    map.createFood();
-}
-
-
-function clock () {
-    var temp;
-    temp = run();
-    if (temp != 'gameOver') {
-        setTimeout('clock()', 1000/speed);
-    } else {
-        status = 'gameover';
-    }
-}
-
-function run () {
-    draw();
-    return player1.moveHead();
-}
-
-
-/******************** game array **********************/
-
-map.createNewMap = function () {
-    for (var c1 = 0; c1 < width; c1++) {
-        this[c1] = [];
-        for (var c2 = 0; c2 < height; c2++){
-            this[c1][c2] = 'empty';
-        }  
-    }
-}
-
-
-map.createFood = function () {
-    do {
-        var c1 = Math.floor(Math.random()*height);
-        var c2 = Math.floor(Math.random()*width);
-    } while (map[c1][c2] != 'empty');
-    this[c1][c2] = 'food';
-}
-
 /*********************** snake *************************/
 
-snake = function (head, tail) {
-    this.head = {x: head.x, y: head.y};
-    this.tail = {x: tail.x, y:tail.y};
-    this.body = 1;
+snake = function (head, tail, body) {
+    this.next = '';
+    this.head = head;
+    this.tail = tail;
+    this.body = body || 1;
 }
 
 snake.prototype.moveHead = function () {
-    var direct = map[this.head.x][this.head.y];
     var x = this.head.x;
     var y = this.head.y;
+    var direct = this.next ? this.next : map[x][y];
     var next = '';
+
+    map[x][y] = direct;
     
     switch (direct) {
         case 'up':
@@ -192,22 +87,22 @@ snake.prototype.moveHead = function () {
             break;
 
         case 'right':
-        if (x + 1 > width - 1) {
-                return 'gameOver'
-            }
-            next = map[x + 1][y];
-            map[x + 1][y] = 'right';
-            this.head.x += 1;
-            break;
+            if (x + 1 > width - 1) {
+                    return 'gameOver'
+                }
+                next = map[x + 1][y];
+                map[x + 1][y] = 'right';
+                this.head.x += 1;
+                break;
 
         case 'down':
-        if (y + 1 > height - 1) {
-                return 'gameOver'
-            }
-            next = map[x][y + 1];
-            map[x][y + 1] = 'down';
-            this.head.y += 1;
-            break;
+            if (y + 1 > height - 1) {
+                    return 'gameOver'
+                }
+                next = map[x][y + 1];
+                map[x][y + 1] = 'down';
+                this.head.y += 1;
+                break;
 
         case 'left':
             if (x - 1 < 0) {
@@ -221,6 +116,7 @@ snake.prototype.moveHead = function () {
         default:
             return 'gameOver';
     }
+
     if (next == 'empty') {
         this.moveTail();
     }else if (next == 'food') {
@@ -252,18 +148,53 @@ snake.prototype.moveTail = function () {
     }
 }
 
+/******************** game array **********************/
+
+map.createNewMap = function () {
+    for (var c1 = 0; c1 < width; c1++) {
+        this[c1] = [];
+        for (var c2 = 0; c2 < height; c2++){
+            this[c1][c2] = 'empty';
+        }  
+    }
+}
+
+map.createFood = function (data) {
+    if (data) {
+        map[data.x][data.y] = 'food';
+        console.log(data);
+    } 
+    else if (role == 'host') {
+        do {
+            var c1 = Math.floor(Math.random()*height);
+            var c2 = Math.floor(Math.random()*width);
+        } while (map[c1][c2] != 'empty');
+        
+        this[c1][c2] = 'food';
+        sendEvents({event:'createFood', x:c1, y:c2})
+    } 
+    if (!role) {
+         do {
+            var c1 = Math.floor(Math.random()*height);
+            var c2 = Math.floor(Math.random()*width);
+        } while (map[c1][c2] != 'empty');
+        
+        this[c1][c2] = 'food';
+    } 
+}
 
 /*********************** draw **************************/
+
 function showWords(words) {
     for (var c1 = 0; c1 < width; c1++) {
         for (var c2 = 0; c2 < height; c2 ++) {
             if (c1 in words && words[c1].indexOf(c2) != -1) {
                 ctx.fillStyle = 'white';
-                ctx.fillRect(c1*15, c2*15, 14, 14);
+                ctx.fillRect(c1*14, c2*14, 13, 13);
             }
             else {
                 ctx.fillStyle = 'black';
-                ctx.fillRect(c1*15, c2*15, 14, 14);   
+                ctx.fillRect(c1*14, c2*14, 13, 13);   
             }
         }
     }
@@ -274,18 +205,182 @@ function draw () {
         for (var c2 = 0; c2 < height; c2 ++) {
             if (map[c1][c2] == 'empty') {
                 ctx.fillStyle = 'black';
-                ctx.fillRect(c1*15, c2*15, 14, 14);
+                ctx.fillRect(c1*14, c2*14, 13, 13);
             }else {
                 ctx.fillStyle = 'white';
-                ctx.fillRect(c1*15 , c2*15, 14, 14);
+                ctx.fillRect(c1*14, c2*14, 13, 13);
             }
         }
     }
 }
 
+/******************* keypress event **********************/
 
-showWords(logo);
-console.log('stop')
+document.onkeydown = keyevent;
+function keyevent () {
+
+    if (status == 'playing') {
+        var x = player1.head.x;
+        var y = player1.head.y;
+        var dir = map[x][y];
+        var next;
+        // right
+        if (event.keyCode == 39 && dir != 'left' && !player1.next) {
+            next = 'right';
+        }
+        // left
+        else if (event.keyCode == 37 && dir != 'right' && !player1.next) {
+            next = 'left';
+        }
+        // up
+        else if (event.keyCode == 38 && dir != 'down' && !player1.next) {
+            next = 'up';
+        }
+        // down
+        else if (event.keyCode == 40 && dir != 'up' && !player1.next) {
+            next = 'down';
+        }
+
+        if (next) {
+            clearTimeout(timer);
+            changeDir(next, true);
+            if (role) {
+                sendEvents({
+                    event: 'changeDir',
+                    dir: next,
+                });
+            }
+        }
+    }
+    if (status == 'gameOver') {
+        // enter
+        if (event.keyCode == 13) {
+            showWords(logo);
+            narrow();
+            status = 'menu';
+        }
+    }
+}
+
+function changeDir (data, myself) {
+    if (myself) {
+        player1.next = data;   
+        
+        if (role) {
+            sendEvents({
+                event: 'changeDir',
+                dir: data,
+            });
+        }    
+    } else {
+        player2.next = data.dir;
+    }
+
+    if (role) {
+        if (player1.next && player2.next) {
+            run();
+        }
+    } else {
+        if (player1.next) {
+            run();
+        }
+    }
+}
+
+function singoModStart () {
+    status = 'playing';
+    expand();
+    gameInit();
+    countdown(run);
+}
+
+function multiModStart () {
+    role = 'host';
+    status = 'playing';
+    gameInit();
+}
+
+
+function gameInit (data) {
+    map.createNewMap(); 
+    if (!data) {
+        // multi mod
+        if (role) {
+            player1 = new snake({x:11, y:21}, {x:11, y:21});
+            player2 = new snake({x:31, y:21}, {x:31, y:21});
+            map[11][21] = 'up';
+            map[31][21] = 'down';
+            map[21][21]= 'food';
+
+            sendEvents({event: "gameInit", map: map});
+            // map.createFood();
+        } 
+        //singo mod
+        else {
+            console.log('init game')
+            player1 = new snake({x:21, y:21}, {x:21, y:21});
+            map[21][21] = 'right';
+            map.createFood();
+        }
+    }
+    else {
+        for (i = 0; i < width; i++) {
+            map[i] = data.map[i];
+        }
+        role = 'client';
+        status = 'playing';
+        player2 = new snake({x:11, y:21}, {x:11, y:21});
+        player1 = new snake({x:31, y:21}, {x:31, y:21});
+        map[11][21] = 'up';
+        map[31][21] = 'down';
+
+        sendEvents({event: "initDone"});
+        initDone();
+    }
+}
+
+
+function countdown(callback) {
+    var i = 0;
+    this.count = function () {
+        showWords(number[i]);
+        i ++;
+        if (i >= number.length) {return true}
+        else { setTimeout('count()',1000) }; 
+    }
+    this.count();
+    // init player1
+    setTimeout(callback, 5000);
+}
+
+
+function run () {
+    if (!role) {
+        draw();
+        var gameOver = player1.moveHead();
+        if (gameOver == 'gameOver') {
+            status = 'gameOver';
+            return 0;
+        }
+        player1.next = '';    
+    } 
+    else {
+        draw();
+        var g1 = player1.moveHead();
+        var g2 = player2.moveHead();
+        if (g1 == 'gameOver' || g1 == 'gameOver') {
+            status = 'gameOver';
+            sendEvents({event: 'gameOver'});
+            return 0;
+        }
+        player1.next = '';
+        player2.next = '';
+    }
+
+    clearTimeout(timer);
+
+    timer = setTimeout('changeDir(map[player1.head.x][player1.head.y], true)', 100);
+}
 
 
 /************************ connect *************************/
@@ -332,14 +427,14 @@ function connect () {
     
     // setting listen
     conn.on('open', function(){
-        conn.send('{"event":"connectReq","id":' + your_peer_id + '}');
+        sendEvents({event: "connectReq", id: your_peer_id});
     });
 
 }
 
 function handleEvents (data) {
     var json = JSON.parse(data);
-    console.log(json);
+    // console.log(json);
     var eventName = json.event;
     listener[eventName](json);
 }
@@ -355,21 +450,69 @@ function connectReq (data) {
     console.log('connect to: ' + another_peer_id);
     conn = peer.connect(another_peer_id);
     conn.on('open', function(){
-        // both start in to role choose
-        // conn.send('{"event":"startGame"}');
-        multi = true;
-        gameInit();
+        multiModStart();
     });
 }
 
-function startGame () {
+function initDone () {
+    countdown(run);
     expand();
 }
 
+function gameOver () {
+    status = 'gameOver';
+}
+
+
+/****************** control ********************/
+
+$(document).ready(function () {
+    showWords(logo);
+    connectInit();
+    $('.menu-multi, #back, #end').hide();
+    $('#singo').on('click', singoModStart)
+    $('#multi').on('click', function () {
+        $('.menu-main').hide();
+        $('.menu-multi, #back').show();
+        $('#another_number').focus();
+    })
+    $('#back').on('click', function () {
+        $('.menu-multi, #back, #end').hide();
+        $('.menu-main').show();
+    })
+})
+
+function expand () {
+    $('.menu-item, .menu-multi').hide();
+    $('#canvasBox').animate({
+            width: '574',
+            height: '574',
+        }, 800);
+    $('canvas').animate({
+        top: '0',
+        left: '0',
+    }, 800);
+}
+
+function narrow () {
+    $('#canvasBox').animate({
+        width: '224',
+        height: '224',
+    }, 800);
+    $('canvas').animate({
+        top: '-175',
+        left: '-175',
+    }, 800);
+    $('#end, #back').show();
+}
+
+ 
 var listener = {};
+
 listener.connectReq = connectReq;
 listener.gameInit = gameInit;
-listener.startGame = startGame;
+listener.initDone = initDone;
+listener.changeDir = changeDir;
+listener.createFood = map.createFood;
+listener.gameOver = gameOver;
 
-
-connectInit();

@@ -7,8 +7,8 @@ body {
   background-color: black; }
 
 #canvasBox {
-  width: 240px;
-  height: 240px;
+  width: 224px;
+  height: 224px;
   border: 8px solid #fff;
   border-radius: 10px;
   margin: 0px auto;
@@ -16,12 +16,12 @@ body {
   overflow: hidden; }
 
 #myCanvas {
-  top: -187.5px;
-  left: -187.5px;
+  top: -175px;
+  left: -175px;
   position: relative; }
 
 #menu {
-  margin: 20px auto;
+  margin: 10px auto;
   color: #fff;
   text-align: center; }
   #menu input {
@@ -42,7 +42,7 @@ body {
       color: #ff8300; }
   #menu #titan {
     font-family: 'Orbitron', sans-serif;
-    margin: 0px 0px 35px 0px;
+    margin: 0px 0px 5px 0px;
     font-size: 3em; }
   #menu #end {
     margin: 25px 0px;
