@@ -1,13 +1,21 @@
-// menu, playing, gameOver
+// setting
+// 
+// status -> menu, playing, gameOver
+// 
+// role -> undefined, host, client
+// 
+// 
+// 
+// 
 var status = 'menu';
-// undefined(singo), host, client
 var role = '';
 
 var map = [];
 var width = 41;
 var height = 41;
 
-// millisecond/times
+var colors = {wall:'#ff7834', food:'#3d41ca', body:'#fff', empty:'#000'}
+
 var moveTime = 100;
 var timer;
 
@@ -73,45 +81,36 @@ snake.prototype.move = function () {
     var y = this.head.y;
     var direct = this.next ? this.next : map[x][y];
     var next = '';
-
     map[x][y] = direct;
     
     switch (direct) {
         case 'up':
-            if (y - 1 < 0) {
-                return true;
-            }
+            if (y - 1 < 0) { return true; }
             next = map[x][y - 1];
             map[x][y - 1] = 'up';
             this.head.y -= 1;
             break;
 
+        case 'left':
+            if (x - 1 < 0) { return true;}
+            next = map[x - 1][y];
+            map[x - 1][y] = 'left';
+            this.head.x -= 1;
+            break;
+
         case 'right':
-            if (x + 1 > width - 1) {
-                    return true;
-                }
+            if (x + 1 > width - 1) { return true; }
                 next = map[x + 1][y];
                 map[x + 1][y] = 'right';
                 this.head.x += 1;
                 break;
 
         case 'down':
-            if (y + 1 > height - 1) {
-                    return true;
-                }
+            if (y + 1 > height - 1) { return true; }
                 next = map[x][y + 1];
                 map[x][y + 1] = 'down';
                 this.head.y += 1;
                 break;
-
-        case 'left':
-            if (x - 1 < 0) {
-                    return true;
-                }
-            next = map[x - 1][y];
-            map[x - 1][y] = 'left';
-            this.head.x -= 1;
-            break;
 
         default:
             return true;;
@@ -130,8 +129,10 @@ snake.prototype.move = function () {
 
 
 snake.prototype.moveTail = function () {
-    var tail_direct = map[this.tail.x][this.tail.y];
-    map[this.tail.x][this.tail.y] = 'empty';
+    var x = this.tail.x;
+    var y = this.tail.y;
+    var tail_direct = map[x][y];
+    map[x][y] = 'empty';
     switch (tail_direct) {
         case 'up':
             this.tail.y -= 1;
@@ -150,11 +151,17 @@ snake.prototype.moveTail = function () {
 
 /******************** game array **********************/
 
-map.createNewMap = function () {
+map.createNewMap = function (wall) {
     for (var c1 = 0; c1 < width; c1++) {
         this[c1] = [];
         for (var c2 = 0; c2 < height; c2++){
-            this[c1][c2] = 'empty';
+            if (wall[c1] 
+                && (wall[c1].indexOf(c2) != -1)) {
+                this[c1][c2] = 'wall';
+            } else {
+                this[c1][c2] = 'empty';    
+            }
+            
         }  
     }
 }
@@ -203,13 +210,17 @@ function showWords(words) {
 function draw () {
     for (var c1 = 0; c1 < width; c1++) {
         for (var c2 = 0; c2 < height; c2 ++) {
-            if (map[c1][c2] == 'empty') {
-                ctx.fillStyle = 'black';
-                ctx.fillRect(c1*14, c2*14, 13, 13);
-            }else {
-                ctx.fillStyle = 'white';
-                ctx.fillRect(c1*14, c2*14, 13, 13);
+            switch (map[c1][c2]) {
+                case 'empty':
+                    ctx.fillStyle = colors.empty; break;
+                case 'food':
+                    ctx.fillStyle = colors.food; break;
+                case 'wall':
+                    ctx.fillStyle = colors.wall; break;
+                default:
+                    ctx.fillStyle = colors.body; break;
             }
+            ctx.fillRect(c1*14, c2*14, 13, 13);
         }
     }
 }
@@ -302,37 +313,45 @@ function multiModStart () {
 
 
 function gameInit (data) {
-    map.createNewMap(); 
+    map.createNewMap(logo); 
     if (!data) {
         // multi mod
-        if (role) {
-            player1 = new snake({x:11, y:21}, {x:11, y:21});
-            player2 = new snake({x:31, y:21}, {x:31, y:21});
+        if (role == 'host') {
+            player1 = new snake({x:11, y:21}, {x:11, y:24});
+            player2 = new snake({x:31, y:21}, {x:31, y:18});
             map[11][21] = 'up';
+            map[11][22] = 'up';
+            map[11][23] = 'up';
+            map[11][24] = 'up';
             map[31][21] = 'down';
-            map[21][21]= 'food';
+            map[31][20] = 'down';
+            map[31][19] = 'down';
+            map[31][18] = 'down';
+            map[20][20]= 'food';
 
             sendEvents({event: "gameInit", map: map});
             // map.createFood();
         } 
-        //singo mod
+        // singo mod
         else {
             console.log('init game')
-            player1 = new snake({x:21, y:21}, {x:21, y:21});
-            map[21][21] = 'right';
+            player1 = new snake({x:20, y:21}, {x:20, y:24});
+            map[20][21] = 'up';
+            map[20][22] = 'up';
+            map[20][23] = 'up';
+            map[20][24] = 'up';
             map.createFood();
         }
     }
     else {
+        // map = data.map;
         for (i = 0; i < width; i++) {
             map[i] = data.map[i];
         }
         role = 'client';
         status = 'playing';
-        player2 = new snake({x:11, y:21}, {x:11, y:21});
-        player1 = new snake({x:31, y:21}, {x:31, y:21});
-        map[11][21] = 'up';
-        map[31][21] = 'down';
+        player2 = new snake({x:11, y:21}, {x:11, y:24});
+        player1 = new snake({x:31, y:21}, {x:31, y:18});
 
         sendEvents({event: "initDone"});
         initDone();
@@ -436,7 +455,7 @@ function connect () {
 
 function handleEvents (data) {
     var json = JSON.parse(data);
-    // console.log(json);
+    console.log(json);   
     var eventName = json.event;
     listener[eventName](json);
 }
