@@ -8,7 +8,7 @@ var width = 41;
 var height = 41;
 
 // millisecond/times
-var moveTime = 100;
+var moveTime = 500;
 var timer;
 
 var cvs = document.getElementById('myCanvas');
@@ -68,7 +68,7 @@ snake = function (head, tail, body) {
     this.body = body || 1;
 }
 
-snake.prototype.moveHead = function () {
+snake.prototype.move = function () {
     var x = this.head.x;
     var y = this.head.y;
     var direct = this.next ? this.next : map[x][y];
@@ -79,7 +79,7 @@ snake.prototype.moveHead = function () {
     switch (direct) {
         case 'up':
             if (y - 1 < 0) {
-                return 'gameOver'
+                return true;
             }
             next = map[x][y - 1];
             map[x][y - 1] = 'up';
@@ -88,7 +88,7 @@ snake.prototype.moveHead = function () {
 
         case 'right':
             if (x + 1 > width - 1) {
-                    return 'gameOver'
+                    return true;
                 }
                 next = map[x + 1][y];
                 map[x + 1][y] = 'right';
@@ -97,7 +97,7 @@ snake.prototype.moveHead = function () {
 
         case 'down':
             if (y + 1 > height - 1) {
-                    return 'gameOver'
+                    return true;
                 }
                 next = map[x][y + 1];
                 map[x][y + 1] = 'down';
@@ -106,7 +106,7 @@ snake.prototype.moveHead = function () {
 
         case 'left':
             if (x - 1 < 0) {
-                    return 'gameOver'
+                    return true;
                 }
             next = map[x - 1][y];
             map[x - 1][y] = 'left';
@@ -114,7 +114,7 @@ snake.prototype.moveHead = function () {
             break;
 
         default:
-            return 'gameOver';
+            return true;;
     }
 
     if (next == 'empty') {
@@ -124,7 +124,7 @@ snake.prototype.moveHead = function () {
         map.createFood();
     }else {
         console.log('gameOver')
-        return 'gameOver';
+        return true;
     }
 }
 
@@ -357,8 +357,8 @@ function countdown(callback) {
 function run () {
     if (!role) {
         draw();
-        var gameOver = player1.moveHead();
-        if (gameOver == 'gameOver') {
+        var gameOver = player1.move();
+        if (gameOver) {
             status = 'gameOver';
             return 0;
         }
@@ -366,9 +366,10 @@ function run () {
     } 
     else {
         draw();
-        var g1 = player1.moveHead();
-        var g2 = player2.moveHead();
-        if (g1 == 'gameOver' || g1 == 'gameOver') {
+        var g1 = player1.move();
+        var g2 = player2.move();
+        // check both status  
+        if (g1 || g1 ) {
             status = 'gameOver';
             sendEvents({event: 'gameOver'});
             return 0;
@@ -378,8 +379,9 @@ function run () {
     }
 
     clearTimeout(timer);
-
-    timer = setTimeout('changeDir(map[player1.head.x][player1.head.y], true)', 100);
+    timer = setTimeout(
+        'changeDir(map[player1.head.x][player1.head.y], true)',
+        moveTime );
 }
 
 
