@@ -8,7 +8,7 @@ var width = 41;
 var height = 41;
 
 // millisecond/times
-var moveTime = 500;
+var moveTime = 200;
 var timer;
 
 var cvs = document.getElementById('myCanvas');
