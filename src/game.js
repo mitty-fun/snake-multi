@@ -5,8 +5,6 @@
 // role -> undefined, host, client
 // 
 // 
-// 
-// 
 var status = 'menu';
 var role = '';
 
@@ -14,10 +12,12 @@ var map = [];
 var width = 41;
 var height = 41;
 
-var colors = {wall:'#ff7834', food:'#3d41ca', body:'#fff', empty:'#000'}
+var colors = {wall:'#ff7834', food:'#3d41ca', body:'#fff', empty:'#000'};
 
 var moveTime = 100;
 var timer;
+
+var again = false;
 
 var cvs = document.getElementById('myCanvas');
 var ctx = cvs.getContext('2d');
@@ -85,32 +85,32 @@ snake.prototype.move = function () {
     
     switch (direct) {
         case 'up':
-            if (y - 1 < 0) { return true; }
+            if (y - 1 < 0) { return true; };
             next = map[x][y - 1];
             map[x][y - 1] = 'up';
             this.head.y -= 1;
             break;
 
         case 'left':
-            if (x - 1 < 0) { return true;}
+            if (x - 1 < 0) { return true; };
             next = map[x - 1][y];
             map[x - 1][y] = 'left';
             this.head.x -= 1;
             break;
 
         case 'right':
-            if (x + 1 > width - 1) { return true; }
-                next = map[x + 1][y];
-                map[x + 1][y] = 'right';
-                this.head.x += 1;
-                break;
+            if (x + 1 > width - 1) { return true; };
+            next = map[x + 1][y];
+            map[x + 1][y] = 'right';
+            this.head.x += 1;
+            break;
 
         case 'down':
-            if (y + 1 > height - 1) { return true; }
-                next = map[x][y + 1];
-                map[x][y + 1] = 'down';
-                this.head.y += 1;
-                break;
+            if (y + 1 > height - 1) { return true; };
+            next = map[x][y + 1];
+            map[x][y + 1] = 'down';
+            this.head.y += 1;
+            break;
 
         default:
             return true;;
@@ -155,13 +155,12 @@ map.createNewMap = function (wall) {
     for (var c1 = 0; c1 < width; c1++) {
         this[c1] = [];
         for (var c2 = 0; c2 < height; c2++){
-            if (wall[c1] 
+            if (wall && wall[c1] 
                 && (wall[c1].indexOf(c2) != -1)) {
                 this[c1][c2] = 'wall';
             } else {
                 this[c1][c2] = 'empty';    
             }
-            
         }  
     }
 }
@@ -214,11 +213,11 @@ function draw () {
                 case 'empty':
                     ctx.fillStyle = colors.empty; break;
                 case 'food':
-                    ctx.fillStyle = colors.food; break;
+                    ctx.fillStyle = colors.food;  break;
                 case 'wall':
-                    ctx.fillStyle = colors.wall; break;
+                    ctx.fillStyle = colors.wall;  break;
                 default:
-                    ctx.fillStyle = colors.body; break;
+                    ctx.fillStyle = colors.body;  break;
             }
             ctx.fillRect(c1*14, c2*14, 13, 13);
         }
@@ -299,8 +298,8 @@ function changeDir (data, myself) {
 }
 
 function singoModStart () {
+    role = '';
     status = 'playing';
-    expand();
     gameInit();
     countdown(run);
 }
@@ -379,6 +378,7 @@ function run () {
         var gameOver = player1.move();
         if (gameOver) {
             status = 'gameOver';
+            $('#enter').show();
             return 0;
         }
         player1.next = '';    
@@ -390,6 +390,7 @@ function run () {
         // check both status  
         if (g1 || g1 ) {
             status = 'gameOver';
+            $('#enter').show();
             sendEvents({event: 'gameOver'});
             return 0;
         }
@@ -481,34 +482,62 @@ function initDone () {
 }
 
 function gameOver () {
+    $('#enter').show();
     status = 'gameOver';
 }
 
+function restart () {
+    if (again && role == 'host') {
+        status = 'playing';
+        expand();
+        return gameInit();
+    }
+    if (role == 'client') {
+        sendEvents({event: 'restart'})
+    }
+    again = true;
+}
 
-/****************** control ********************/
+
+/****************** UI control ********************/
 
 $(document).ready(function () {
     showWords(logo);
     connectInit();
-    $('.menu-multi, #back, #end').hide();
-    $('#singo').on('click', singoModStart)
+
+    $('.menu-item').hide();
+    $('.menu-main').show();
+    
+    $('#singo').on('click', function () {
+        expand();
+        singoModStart();
+    })   
     $('#multi').on('click', function () {
-        $('.menu-main').hide();
-        $('.menu-multi, #back').show();
-        $('#another_number').focus();
+        if (!another_peer_id) {
+            $('.menu-main').hide();
+            $('.menu-multi, #back').show();
+            $('#another_number').focus();    
+        } else {
+            $('#another_peer_id').text(another_peer_id);
+            $('.menu-main').hide();
+            $('#again, #back').show();
+            console.log('XD');
+            restart();
+        }
     })
+    
     $('#back').on('click', function () {
-        $('.menu-multi, #back, #end').hide();
+        $('.menu-item').hide();
         $('.menu-main').show();
     })
 })
 
 function expand () {
-    $('.menu-item, .menu-multi').hide();
+    $('.menu-item').hide();
     $('#canvasBox').animate({
-            width: '574',
-            height: '574',
-        }, 800);
+        width: '574',
+        height: '574',
+    }, 800);
     $('canvas').animate({
         top: '0',
         left: '0',
@@ -524,7 +553,8 @@ function narrow () {
         top: '-175',
         left: '-175',
     }, 800);
-    $('#end, #back').show();
+    $('#enter').hide();
+    $('#forTitan, #back').show();
 }
 
  
@@ -536,4 +566,4 @@ listener.initDone = initDone;
 listener.changeDir = changeDir;
 listener.createFood = map.createFood;
 listener.gameOver = gameOver;
-
+listener.restart = restart;
