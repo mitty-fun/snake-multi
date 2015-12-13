@@ -16,6 +16,8 @@ var colors = {
 
 var moveTime = 100;
 var timer;
+var round;
+var prev;
 
 var cvs = document.getElementById('myCanvas');
 var ctx = cvs.getContext('2d');
@@ -78,7 +80,7 @@ snake = function (head, tail, body) {
 snake.prototype.move = function () {
     var x = this.head.x;
     var y = this.head.y;
-    var direct = this.next ? this.next : map[x][y];
+    var direct = this.next;
     var next = '';
     map[x][y] = direct;
     
@@ -264,12 +266,12 @@ function keyevent () {
         if (next) {
             clearTimeout(timer);
             changeDir(next, true);
-            if (role) {
-                sendEvents({
-                    event: 'changeDir',
-                    dir: next,
-                });
-            }
+            // if (role) {
+            //     sendEvents({
+            //         event: 'changeDir',
+            //         dir: next,
+            //     });
+            // }
         }
     }
     if (status == 'gameOver') {
@@ -278,31 +280,6 @@ function keyevent () {
             showWords(logo);
             narrow();
             status = 'menu';
-        }
-    }
-}
-
-function changeDir (data, myself) {
-    if (myself) {
-        player1.next = data;   
-        
-        if (role) {
-            sendEvents({
-                event: 'changeDir',
-                dir: data,
-            });
-        }    
-    } else {
-        player2.next = data.dir;
-    }
-
-    if (role) {
-        if (player1.next && player2.next) {
-            run();
-        }
-    } else {
-        if (player1.next) {
-            run();
         }
     }
 }
@@ -326,6 +303,8 @@ function gameInit (data) {
         if (role == 'host') {
             player1 = new snake({x:11, y:21}, {x:11, y:24});
             player2 = new snake({x:31, y:21}, {x:31, y:18});
+            player1.next = 'up';
+            player2.next = 'down';
             map[11][21] = 'up';
             map[11][22] = 'up';
             map[11][23] = 'up';
@@ -335,14 +314,15 @@ function gameInit (data) {
             map[31][19] = 'down';
             map[31][18] = 'down';
             map[20][20]= 'food';
+            round = 0;
 
             sendEvents({event: "gameInit", map: map});
-            // map.createFood();
         } 
         // singo mod
         else {
             console.log('init game')
             player1 = new snake({x:20, y:21}, {x:20, y:24});
+            player1.next = 'up';
             map[20][21] = 'up';
             map[20][22] = 'up';
             map[20][23] = 'up';
@@ -351,7 +331,6 @@ function gameInit (data) {
         }
     }
     else {
-        // map = data.map;
         for (i = 0; i < width; i++) {
             map[i] = data.map[i];
         }
@@ -359,6 +338,9 @@ function gameInit (data) {
         status = 'playing';
         player2 = new snake({x:11, y:21}, {x:11, y:24});
         player1 = new snake({x:31, y:21}, {x:31, y:18});
+        player2.next = 'up';
+        player1.next = 'down';
+        round = 0;
 
         sendEvents({event: "initDone"});
         initDone();
@@ -381,7 +363,6 @@ function countdown(callback) {
 
 
 function run () {
-    clearTimeout(timer);
     status = 'playing';
     if (!role) {
         draw();
@@ -404,14 +385,46 @@ function run () {
             sendEvents({event: 'gameOver'});
             return 0;
         }
+        prev = player1.next;
         player1.next = '';
         player2.next = '';
+        round += 1;
     }
 
     
     timer = setTimeout(
         'changeDir(map[player1.head.x][player1.head.y], true)',
         moveTime );
+}
+
+function changeDir (data, myself) {
+    if (myself) {
+        player1.next = data;
+
+        if (role) {
+            sendEvents({
+                event: 'changeDir',
+                dir: data,
+                round: round,
+            });
+        }    
+    } else {
+        if (data.round == round) {
+            player2.next = data.dir;    
+        } else {
+            sendEvents({event: lostReq});
+        }
+    }
+
+    if (role) {
+        if (player1.next && player2.next) {
+            run();
+        }
+    } else {
+        if (player1.next) {
+            run();
+        }
+    }
 }
 
 
@@ -466,7 +479,7 @@ function connect () {
 
 function handleEvents (data) {
     var json = JSON.parse(data);
-    console.log(json);   
+    // console.log(json);   
     var eventName = json.event;
     listener[eventName](json);
 }
@@ -489,6 +502,19 @@ function connectReq (data) {
 function initDone () {
     countdown(run);
     expand();
+}
+
+function lostReq () {
+    console.log('lost one');
+    sendEvents({
+        event: 'changeDir',
+        dir: prev,
+        round: round - 1,
+    });
+    timer = setTimeout(
+        'changeDir(map[player1.head.x][player1.head.y], true)',
+        moveTime );
+
 }
 
 function gameOver () {
@@ -591,4 +617,5 @@ listener.changeDir = changeDir;
 listener.createFood = map.createFood;
 listener.gameOver = gameOver;
 listener.again = again;
+listener.lostReq = lostReq;
 
