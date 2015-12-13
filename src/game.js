@@ -17,7 +17,8 @@ var colors = {wall:'#ff7834', food:'#3d41ca', body:'#fff', empty:'#000'};
 var moveTime = 100;
 var timer;
 
-var again = false;
+var player1_again = false;
+var player2_again = false;
 
 var cvs = document.getElementById('myCanvas');
 var ctx = cvs.getContext('2d');
@@ -67,7 +68,8 @@ var number = [
     },
 ]
 
-/*********************** snake *************************/
+
+/**************************** Snake *****************************/
 
 snake = function (head, tail, body) {
     this.next = '';
@@ -149,7 +151,8 @@ snake.prototype.moveTail = function () {
     }
 }
 
-/******************** game array **********************/
+
+/************************* Game Array *************************/
 
 map.createNewMap = function (wall) {
     for (var c1 = 0; c1 < width; c1++) {
@@ -189,18 +192,18 @@ map.createFood = function (data) {
     } 
 }
 
-/*********************** draw **************************/
+/**************************** Draw ****************************/
 
 function showWords(words) {
     for (var c1 = 0; c1 < width; c1++) {
         for (var c2 = 0; c2 < height; c2 ++) {
             if (c1 in words && words[c1].indexOf(c2) != -1) {
                 ctx.fillStyle = 'white';
-                ctx.fillRect(c1*14, c2*14, 13, 13);
+                ctx.fillRect(c1*13, c2*13, 12, 12);
             }
             else {
                 ctx.fillStyle = 'black';
-                ctx.fillRect(c1*14, c2*14, 13, 13);   
+                ctx.fillRect(c1*13, c2*13, 12, 12);   
             }
         }
     }
@@ -219,12 +222,12 @@ function draw () {
                 default:
                     ctx.fillStyle = colors.body;  break;
             }
-            ctx.fillRect(c1*14, c2*14, 13, 13);
+            ctx.fillRect(c1*13, c2*13, 12, 12);
         }
     }
 }
 
-/******************* keypress event **********************/
+/*********************** keypress event ***********************/
 
 document.onkeydown = keyevent;
 function keyevent () {
@@ -299,14 +302,12 @@ function changeDir (data, myself) {
 
 function singoModStart () {
     role = '';
-    status = 'playing';
     gameInit();
     countdown(run);
 }
 
 function multiModStart () {
     role = 'host';
-    status = 'playing';
     gameInit();
 }
 
@@ -373,6 +374,7 @@ function countdown(callback) {
 
 
 function run () {
+    status = 'playing';
     if (!role) {
         draw();
         var gameOver = player1.move();
@@ -404,8 +406,7 @@ function run () {
         moveTime );
 }
 
-
-/************************ connect *************************/
+/************************** Connect ***************************/
 
 var your_peer_id;
 var another_peer_id;
@@ -414,15 +415,15 @@ var conn;
 
 
 function connectInit () {
-    // generate your ID number  0 ~ 999999
-    your_peer_id = Math.floor(Math.random()*1000000).toString();
+    // generate your ID number  0 ~ 99999
+    your_peer_id = Math.floor(Math.random()*100000).toString();
     console.log('your ID number: ' + your_peer_id);
     
     // show your ID number
     $('#your_number').text(your_peer_id);
     
     // input another ID number keypress "enter" to send request connect 
-    $('#another_number').keypress(function(e) {
+    $('#another_number_input').keypress(function(e) {
         code = e.keyCode ? e.keyCode : e.which;
         if(code == 13) {
             another_peer_id = $(this).val();
@@ -486,20 +487,30 @@ function gameOver () {
     status = 'gameOver';
 }
 
-function restart () {
-    if (again && role == 'host') {
+function again (data) {
+    if (!data) {
+        if (role == 'host') {
+            player1_again = true;
+        }
+        if (role == 'client') {
+            player1_again = true;
+            sendEvents({event: 'again', again: true});
+        }    
+    } else {
+        player2_again = data.again;
+    }
+    
+    if (player1_again && player2_again) {
+        player1_again = false;
+        player2_again = false;
         status = 'playing';
         expand();
         return gameInit();
     }
-    if (role == 'client') {
-        sendEvents({event: 'restart'})
-    }
-    again = true;
 }
 
 
-/****************** UI control ********************/
+/************************* UI control *************************/
 
 $(document).ready(function () {
     showWords(logo);
@@ -516,27 +527,32 @@ $(document).ready(function () {
         if (!another_peer_id) {
             $('.menu-main').hide();
             $('.menu-multi, #back').show();
-            $('#another_number').focus();    
+            $('#another_number_input').focus();    
         } else {
-            $('#another_peer_id').text(another_peer_id);
+            $('#another_number').text(another_peer_id);
             $('.menu-main').hide();
             $('#again, #back').show();
-            console.log('XD');
-            restart();
+            again();
         }
     })
     
     $('#back').on('click', function () {
         $('.menu-item').hide();
         $('.menu-main').show();
+        if (role == 'client') {
+            sendEvents({event: 'again', again: false});
+        }
+        if (role == 'host') {
+            player1_again = false;
+        }
     })
 })
 
 function expand () {
     $('.menu-item').hide();
     $('#canvasBox').animate({
-        width: '574',
-        height: '574',
+        width: '533',
+        height: '533',
     }, 800);
     $('canvas').animate({
         top: '0',
@@ -546,12 +562,12 @@ function expand () {
 
 function narrow () {
     $('#canvasBox').animate({
-        width: '224',
-        height: '224',
+        width: '208',
+        height: '208',
     }, 800);
     $('canvas').animate({
-        top: '-175',
-        left: '-175',
+        top: '-162.5',
+        left: '-162.5',
     }, 800);
     $('#enter').hide();
     $('#forTitan, #back').show();
@@ -566,4 +582,5 @@ listener.initDone = initDone;
 listener.changeDir = changeDir;
 listener.createFood = map.createFood;
 listener.gameOver = gameOver;
-listener.restart = restart;
+listener.again = again;
+

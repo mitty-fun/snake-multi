@@ -1,5 +1,7 @@
 @import url(https://fonts.googleapis.com/css?family=Orbitron);
 
+$gold:#ff8300;
+
 body{
     display:flex;
     align-items:center;
@@ -8,38 +10,33 @@ body{
     background-color: black;
 }
 
-
 #canvasBox{
-    width: 224px;
-    height: 224px;
+    width: 208px;
+    height: 208px;
     border: 8px solid #fff;
-    border-radius: 10px;
+    border-radius: 12px;
     margin: 0px auto;
     background-color: #444;
     overflow: hidden;
 }
 
 #myCanvas{
-    top: -175px;
-    left: -175px;
+    top: -162.5px;
+    left: -162.5px;
     position: relative;
 }
 
 #menu{
     height: 0px;
-    margin: 10px auto;
-    color: #fff;
+    margin: 0px auto;
     text-align: center;
+    color: #fff;
 
     span{
         margin: 10px;
-        font-size: 1.4em;
         display: block;
+        font-size: 1.4em;
         font-family: 'Orbitron', sans-serif;
-
-        &:hover{
-            color: #ff8300;
-        }
     }
 
     input{
@@ -53,23 +50,22 @@ body{
         background-color: rgba(0, 0, 0, 1);
     }
 
-    .gold{
-        color: #ff8300;
+    .gold, .menu-main:hover, #back:hover{
+        color: $gold;
     }
 
     #titan{
-        margin: 0px 0px 5px 0px;
+        height: 40px;
         font-size: 3em;
     }
 
+    #your_number{
+        display: inline;
+        font-size: 1em;
+    }
+
     #forTitan{
+        margin: 30px auto;
         font-size: 1em;
     }
-
-    #end{
-        margin: 25px 0px; 
-        font-size: 1em;
-    }
-
-    #back{}
 }
