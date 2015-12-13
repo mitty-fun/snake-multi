@@ -1,29 +1,26 @@
-// setting
 // 
 // status -> menu, playing, gameOver
 // 
 // role -> undefined, host, client
-// 
-// 
+//  
 var status = 'menu';
 var role = '';
 
 var map = [];
 var width = 41;
 var height = 41;
+var block = 13; // pixel
 
-var colors = {wall:'#ff7834', food:'#3d41ca', body:'#fff', empty:'#000'};
+var colors = {
+    wall:'#ff7834', food:'#3d41ca', body:'#fff', empty:'#000'};
 
 var moveTime = 100;
 var timer;
 
-var player1_again = false;
-var player2_again = false;
-
 var cvs = document.getElementById('myCanvas');
 var ctx = cvs.getContext('2d');
 
-var player1, player2;
+var player1, player2, player1_again, player2_again;
 
 var logo = {
     15:[15, 17],
@@ -85,6 +82,7 @@ snake.prototype.move = function () {
     var next = '';
     map[x][y] = direct;
     
+    // if bump into boder/body return true
     switch (direct) {
         case 'up':
             if (y - 1 < 0) { return true; };
@@ -192,6 +190,7 @@ map.createFood = function (data) {
     } 
 }
 
+
 /**************************** Draw ****************************/
 
 function showWords(words) {
@@ -199,11 +198,15 @@ function showWords(words) {
         for (var c2 = 0; c2 < height; c2 ++) {
             if (c1 in words && words[c1].indexOf(c2) != -1) {
                 ctx.fillStyle = 'white';
-                ctx.fillRect(c1*13, c2*13, 12, 12);
+                ctx.fillRect(
+                    c1*block, c2*block, block - 1,block - 1
+                );
             }
             else {
                 ctx.fillStyle = 'black';
-                ctx.fillRect(c1*13, c2*13, 12, 12);   
+                ctx.fillRect(
+                    c1*block, c2*block, block - 1,block - 1
+                );   
             }
         }
     }
@@ -222,10 +225,11 @@ function draw () {
                 default:
                     ctx.fillStyle = colors.body;  break;
             }
-            ctx.fillRect(c1*13, c2*13, 12, 12);
+            ctx.fillRect(c1*block, c2*block, block - 1,block - 1);
         }
     }
 }
+
 
 /*********************** keypress event ***********************/
 
@@ -237,23 +241,26 @@ function keyevent () {
         var y = player1.head.y;
         var dir = map[x][y];
         var next;
-        // right
-        if (event.keyCode == 39 && dir != 'left' && !player1.next) {
-            next = 'right';
-        }
-        // left
-        else if (event.keyCode == 37 && dir != 'right' && !player1.next) {
-            next = 'left';
-        }
-        // up
-        else if (event.keyCode == 38 && dir != 'down' && !player1.next) {
-            next = 'up';
-        }
-        // down
-        else if (event.keyCode == 40 && dir != 'up' && !player1.next) {
-            next = 'down';
-        }
 
+        if (!player1.next) {
+            // right
+            if (event.keyCode == 39 && dir != 'left') {
+                next = 'right';
+            }
+            // left
+            else if (event.keyCode == 37 && dir != 'right') {
+                next = 'left';
+            }
+            // up
+            else if (event.keyCode == 38 && dir != 'down') {
+                next = 'up';
+            }
+            // down
+            else if (event.keyCode == 40 && dir != 'up') {
+                next = 'down';
+            }    
+        }
+        
         if (next) {
             clearTimeout(timer);
             changeDir(next, true);
@@ -374,6 +381,7 @@ function countdown(callback) {
 
 
 function run () {
+    clearTimeout(timer);
     status = 'playing';
     if (!role) {
         draw();
@@ -390,7 +398,7 @@ function run () {
         var g1 = player1.move();
         var g2 = player2.move();
         // check both status  
-        if (g1 || g1 ) {
+        if ( g1 || g2 ) {
             status = 'gameOver';
             $('#enter').show();
             sendEvents({event: 'gameOver'});
@@ -400,11 +408,12 @@ function run () {
         player2.next = '';
     }
 
-    clearTimeout(timer);
+    
     timer = setTimeout(
         'changeDir(map[player1.head.x][player1.head.y], true)',
         moveTime );
 }
+
 
 /************************** Connect ***************************/
 
@@ -422,7 +431,7 @@ function connectInit () {
     // show your ID number
     $('#your_number').text(your_peer_id);
     
-    // input another ID number keypress "enter" to send request connect 
+    // input another ID number keypress "enter" to send request 
     $('#another_number_input').keypress(function(e) {
         code = e.keyCode ? e.keyCode : e.which;
         if(code == 13) {
@@ -518,11 +527,11 @@ $(document).ready(function () {
 
     $('.menu-item').hide();
     $('.menu-main').show();
-    
+
     $('#singo').on('click', function () {
         expand();
         singoModStart();
-    })   
+    })
     $('#multi').on('click', function () {
         if (!another_peer_id) {
             $('.menu-main').hide();
@@ -535,7 +544,6 @@ $(document).ready(function () {
             again();
         }
     })
-    
     $('#back').on('click', function () {
         $('.menu-item').hide();
         $('.menu-main').show();
