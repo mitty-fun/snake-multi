@@ -1,20 +1,28 @@
-// menu, playing, gameOver
+// 
+// status -> menu, playing, gameOver
+// 
+// role -> undefined, host, client
+//  
 var status = 'menu';
-// undefined(singo), host, client
 var role = '';
 
 var map = [];
 var width = 41;
 var height = 41;
+var block = 13; // pixel
 
-// millisecond/times
-var moveTime = 500;
+var colors = {
+    wall:'#ff7834', food:'#3d41ca', body:'#fff', empty:'#000'};
+
+var moveTime = 100;
 var timer;
+var round;
+var prev;
 
 var cvs = document.getElementById('myCanvas');
 var ctx = cvs.getContext('2d');
 
-var player1, player2;
+var player1, player2, player1_again, player2_again;
 
 var logo = {
     15:[15, 17],
@@ -59,7 +67,8 @@ var number = [
     },
 ]
 
-/*********************** snake *************************/
+
+/**************************** Snake *****************************/
 
 snake = function (head, tail, body) {
     this.next = '';
@@ -71,46 +80,38 @@ snake = function (head, tail, body) {
 snake.prototype.move = function () {
     var x = this.head.x;
     var y = this.head.y;
-    var direct = this.next ? this.next : map[x][y];
+    var direct = this.next;
     var next = '';
-
     map[x][y] = direct;
     
+    // if bump into boder/body return true
     switch (direct) {
         case 'up':
-            if (y - 1 < 0) {
-                return true;
-            }
+            if (y - 1 < 0) { return true; };
             next = map[x][y - 1];
             map[x][y - 1] = 'up';
             this.head.y -= 1;
             break;
 
-        case 'right':
-            if (x + 1 > width - 1) {
-                    return true;
-                }
-                next = map[x + 1][y];
-                map[x + 1][y] = 'right';
-                this.head.x += 1;
-                break;
-
-        case 'down':
-            if (y + 1 > height - 1) {
-                    return true;
-                }
-                next = map[x][y + 1];
-                map[x][y + 1] = 'down';
-                this.head.y += 1;
-                break;
-
         case 'left':
-            if (x - 1 < 0) {
-                    return true;
-                }
+            if (x - 1 < 0) { return true; };
             next = map[x - 1][y];
             map[x - 1][y] = 'left';
             this.head.x -= 1;
+            break;
+
+        case 'right':
+            if (x + 1 > width - 1) { return true; };
+            next = map[x + 1][y];
+            map[x + 1][y] = 'right';
+            this.head.x += 1;
+            break;
+
+        case 'down':
+            if (y + 1 > height - 1) { return true; };
+            next = map[x][y + 1];
+            map[x][y + 1] = 'down';
+            this.head.y += 1;
             break;
 
         default:
@@ -130,8 +131,10 @@ snake.prototype.move = function () {
 
 
 snake.prototype.moveTail = function () {
-    var tail_direct = map[this.tail.x][this.tail.y];
-    map[this.tail.x][this.tail.y] = 'empty';
+    var x = this.tail.x;
+    var y = this.tail.y;
+    var tail_direct = map[x][y];
+    map[x][y] = 'empty';
     switch (tail_direct) {
         case 'up':
             this.tail.y -= 1;
@@ -148,13 +151,19 @@ snake.prototype.moveTail = function () {
     }
 }
 
-/******************** game array **********************/
 
-map.createNewMap = function () {
+/************************* Game Array *************************/
+
+map.createNewMap = function (wall) {
     for (var c1 = 0; c1 < width; c1++) {
         this[c1] = [];
         for (var c2 = 0; c2 < height; c2++){
-            this[c1][c2] = 'empty';
+            if (wall && wall[c1] 
+                && (wall[c1].indexOf(c2) != -1)) {
+                this[c1][c2] = 'wall';
+            } else {
+                this[c1][c2] = 'empty';    
+            }
         }  
     }
 }
@@ -183,18 +192,23 @@ map.createFood = function (data) {
     } 
 }
 
-/*********************** draw **************************/
+
+/**************************** Draw ****************************/
 
 function showWords(words) {
     for (var c1 = 0; c1 < width; c1++) {
         for (var c2 = 0; c2 < height; c2 ++) {
             if (c1 in words && words[c1].indexOf(c2) != -1) {
                 ctx.fillStyle = 'white';
-                ctx.fillRect(c1*14, c2*14, 13, 13);
+                ctx.fillRect(
+                    c1*block, c2*block, block - 1,block - 1
+                );
             }
             else {
                 ctx.fillStyle = 'black';
-                ctx.fillRect(c1*14, c2*14, 13, 13);   
+                ctx.fillRect(
+                    c1*block, c2*block, block - 1,block - 1
+                );   
             }
         }
     }
@@ -203,18 +217,23 @@ function showWords(words) {
 function draw () {
     for (var c1 = 0; c1 < width; c1++) {
         for (var c2 = 0; c2 < height; c2 ++) {
-            if (map[c1][c2] == 'empty') {
-                ctx.fillStyle = 'black';
-                ctx.fillRect(c1*14, c2*14, 13, 13);
-            }else {
-                ctx.fillStyle = 'white';
-                ctx.fillRect(c1*14, c2*14, 13, 13);
+            switch (map[c1][c2]) {
+                case 'empty':
+                    ctx.fillStyle = colors.empty; break;
+                case 'food':
+                    ctx.fillStyle = colors.food;  break;
+                case 'wall':
+                    ctx.fillStyle = colors.wall;  break;
+                default:
+                    ctx.fillStyle = colors.body;  break;
             }
+            ctx.fillRect(c1*block, c2*block, block - 1,block - 1);
         }
     }
 }
 
-/******************* keypress event **********************/
+
+/*********************** keypress event ***********************/
 
 document.onkeydown = keyevent;
 function keyevent () {
@@ -224,32 +243,35 @@ function keyevent () {
         var y = player1.head.y;
         var dir = map[x][y];
         var next;
-        // right
-        if (event.keyCode == 39 && dir != 'left' && !player1.next) {
-            next = 'right';
-        }
-        // left
-        else if (event.keyCode == 37 && dir != 'right' && !player1.next) {
-            next = 'left';
-        }
-        // up
-        else if (event.keyCode == 38 && dir != 'down' && !player1.next) {
-            next = 'up';
-        }
-        // down
-        else if (event.keyCode == 40 && dir != 'up' && !player1.next) {
-            next = 'down';
-        }
 
+        if (!player1.next) {
+            // right
+            if (event.keyCode == 39 && dir != 'left') {
+                next = 'right';
+            }
+            // left
+            else if (event.keyCode == 37 && dir != 'right') {
+                next = 'left';
+            }
+            // up
+            else if (event.keyCode == 38 && dir != 'down') {
+                next = 'up';
+            }
+            // down
+            else if (event.keyCode == 40 && dir != 'up') {
+                next = 'down';
+            }    
+        }
+        
         if (next) {
             clearTimeout(timer);
             changeDir(next, true);
-            if (role) {
-                sendEvents({
-                    event: 'changeDir',
-                    dir: next,
-                });
-            }
+            // if (role) {
+            //     sendEvents({
+            //         event: 'changeDir',
+            //         dir: next,
+            //     });
+            // }
         }
     }
     if (status == 'gameOver') {
@@ -262,64 +284,49 @@ function keyevent () {
     }
 }
 
-function changeDir (data, myself) {
-    if (myself) {
-        player1.next = data;   
-        
-        if (role) {
-            sendEvents({
-                event: 'changeDir',
-                dir: data,
-            });
-        }    
-    } else {
-        player2.next = data.dir;
-    }
-
-    if (role) {
-        if (player1.next && player2.next) {
-            run();
-        }
-    } else {
-        if (player1.next) {
-            run();
-        }
-    }
-}
-
 function singoModStart () {
-    status = 'playing';
-    expand();
+    role = '';
     gameInit();
     countdown(run);
 }
 
 function multiModStart () {
     role = 'host';
-    status = 'playing';
     gameInit();
 }
 
 
 function gameInit (data) {
-    map.createNewMap(); 
+    map.createNewMap(logo); 
     if (!data) {
         // multi mod
-        if (role) {
-            player1 = new snake({x:11, y:21}, {x:11, y:21});
-            player2 = new snake({x:31, y:21}, {x:31, y:21});
+        if (role == 'host') {
+            player1 = new snake({x:11, y:21}, {x:11, y:24});
+            player2 = new snake({x:31, y:21}, {x:31, y:18});
+            player1.next = 'up';
+            player2.next = 'down';
             map[11][21] = 'up';
+            map[11][22] = 'up';
+            map[11][23] = 'up';
+            map[11][24] = 'up';
             map[31][21] = 'down';
-            map[21][21]= 'food';
+            map[31][20] = 'down';
+            map[31][19] = 'down';
+            map[31][18] = 'down';
+            map[20][20]= 'food';
+            round = 0;
 
             sendEvents({event: "gameInit", map: map});
-            // map.createFood();
         } 
-        //singo mod
+        // singo mod
         else {
             console.log('init game')
-            player1 = new snake({x:21, y:21}, {x:21, y:21});
-            map[21][21] = 'right';
+            player1 = new snake({x:20, y:21}, {x:20, y:24});
+            player1.next = 'up';
+            map[20][21] = 'up';
+            map[20][22] = 'up';
+            map[20][23] = 'up';
+            map[20][24] = 'up';
             map.createFood();
         }
     }
@@ -329,10 +336,11 @@ function gameInit (data) {
         }
         role = 'client';
         status = 'playing';
-        player2 = new snake({x:11, y:21}, {x:11, y:21});
-        player1 = new snake({x:31, y:21}, {x:31, y:21});
-        map[11][21] = 'up';
-        map[31][21] = 'down';
+        player2 = new snake({x:11, y:21}, {x:11, y:24});
+        player1 = new snake({x:31, y:21}, {x:31, y:18});
+        player2.next = 'up';
+        player1.next = 'down';
+        round = 0;
 
         sendEvents({event: "initDone"});
         initDone();
@@ -355,11 +363,13 @@ function countdown(callback) {
 
 
 function run () {
+    status = 'playing';
     if (!role) {
         draw();
         var gameOver = player1.move();
         if (gameOver) {
             status = 'gameOver';
+            $('#enter').show();
             return 0;
         }
         player1.next = '';    
@@ -369,23 +379,56 @@ function run () {
         var g1 = player1.move();
         var g2 = player2.move();
         // check both status  
-        if (g1 || g1 ) {
+        if ( g1 || g2 ) {
             status = 'gameOver';
+            $('#enter').show();
             sendEvents({event: 'gameOver'});
             return 0;
         }
+        prev = player1.next;
         player1.next = '';
         player2.next = '';
+        round += 1;
     }
 
-    clearTimeout(timer);
+    
     timer = setTimeout(
         'changeDir(map[player1.head.x][player1.head.y], true)',
         moveTime );
 }
 
+function changeDir (data, myself) {
+    if (myself) {
+        player1.next = data;
 
-/************************ connect *************************/
+        if (role) {
+            sendEvents({
+                event: 'changeDir',
+                dir: data,
+                round: round,
+            });
+        }    
+    } else {
+        if (data.round == round) {
+            player2.next = data.dir;    
+        } else {
+            sendEvents({event: lostReq});
+        }
+    }
+
+    if (role) {
+        if (player1.next && player2.next) {
+            run();
+        }
+    } else {
+        if (player1.next) {
+            run();
+        }
+    }
+}
+
+
+/************************** Connect ***************************/
 
 var your_peer_id;
 var another_peer_id;
@@ -394,15 +437,15 @@ var conn;
 
 
 function connectInit () {
-    // generate your ID number  0 ~ 999999
-    your_peer_id = Math.floor(Math.random()*1000000).toString();
+    // generate your ID number  0 ~ 99999
+    your_peer_id = Math.floor(Math.random()*100000).toString();
     console.log('your ID number: ' + your_peer_id);
     
     // show your ID number
     $('#your_number').text(your_peer_id);
     
-    // input another ID number keypress "enter" to send request connect 
-    $('#another_number').keypress(function(e) {
+    // input another ID number keypress "enter" to send request 
+    $('#another_number_input').keypress(function(e) {
         code = e.keyCode ? e.keyCode : e.which;
         if(code == 13) {
             another_peer_id = $(this).val();
@@ -436,7 +479,7 @@ function connect () {
 
 function handleEvents (data) {
     var json = JSON.parse(data);
-    // console.log(json);
+    // console.log(json);   
     var eventName = json.event;
     listener[eventName](json);
 }
@@ -461,35 +504,90 @@ function initDone () {
     expand();
 }
 
+function lostReq () {
+    console.log('lost one');
+    sendEvents({
+        event: 'changeDir',
+        dir: prev,
+        round: round - 1,
+    });
+    timer = setTimeout(
+        'changeDir(map[player1.head.x][player1.head.y], true)',
+        moveTime );
+
+}
+
 function gameOver () {
+    $('#enter').show();
     status = 'gameOver';
 }
 
+function again (data) {
+    if (!data) {
+        if (role == 'host') {
+            player1_again = true;
+        }
+        if (role == 'client') {
+            player1_again = true;
+            sendEvents({event: 'again', again: true});
+        }    
+    } else {
+        player2_again = data.again;
+    }
+    
+    if (player1_again && player2_again) {
+        player1_again = false;
+        player2_again = false;
+        status = 'playing';
+        expand();
+        return gameInit();
+    }
+}
 
-/****************** control ********************/
+
+/************************* UI control *************************/
 
 $(document).ready(function () {
     showWords(logo);
     connectInit();
-    $('.menu-multi, #back, #end').hide();
-    $('#singo').on('click', singoModStart)
+
+    $('.menu-item').hide();
+    $('.menu-main').show();
+
+    $('#singo').on('click', function () {
+        expand();
+        singoModStart();
+    })
     $('#multi').on('click', function () {
-        $('.menu-main').hide();
-        $('.menu-multi, #back').show();
-        $('#another_number').focus();
+        if (!another_peer_id) {
+            $('.menu-main').hide();
+            $('.menu-multi, #back').show();
+            $('#another_number_input').focus();    
+        } else {
+            $('#another_number').text(another_peer_id);
+            $('.menu-main').hide();
+            $('#again, #back').show();
+            again();
+        }
     })
     $('#back').on('click', function () {
-        $('.menu-multi, #back, #end').hide();
+        $('.menu-item').hide();
         $('.menu-main').show();
+        if (role == 'client') {
+            sendEvents({event: 'again', again: false});
+        }
+        if (role == 'host') {
+            player1_again = false;
+        }
     })
 })
 
 function expand () {
-    $('.menu-item, .menu-multi').hide();
+    $('.menu-item').hide();
     $('#canvasBox').animate({
-            width: '574',
-            height: '574',
-        }, 800);
+        width: '533',
+        height: '533',
+    }, 800);
     $('canvas').animate({
         top: '0',
         left: '0',
@@ -498,14 +596,15 @@ function expand () {
 
 function narrow () {
     $('#canvasBox').animate({
-        width: '224',
-        height: '224',
+        width: '208',
+        height: '208',
     }, 800);
     $('canvas').animate({
-        top: '-175',
-        left: '-175',
+        top: '-162.5',
+        left: '-162.5',
     }, 800);
-    $('#end, #back').show();
+    $('#enter').hide();
+    $('#forTitan, #back').show();
 }
 
  
@@ -517,4 +616,6 @@ listener.initDone = initDone;
 listener.changeDir = changeDir;
 listener.createFood = map.createFood;
 listener.gameOver = gameOver;
+listener.again = again;
+listener.lostReq = lostReq;
 

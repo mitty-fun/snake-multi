@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>For Titan</title>
+    <link rel="stylesheet" href="./dest/reset.css">
+    <link rel="stylesheet" href="./dest/game.min.css">
+    <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+    <script src="http://cdn.peerjs.com/0.3/peer.js"></script>
+</head>
+<body>
+    <div>
+        <div id="canvasBox">
+            <canvas id="myCanvas" width="533" height="533"></canvas>            
+        </div>
+        <div id="menu">
+            <span id="titan">TITANSOFT</span>
+            <div>
+                <!-- menu -->
+                <span class="menu-item menu-main" id="singo">Singo Mod</span>
+                <span class="menu-item menu-main" id="multi">Multi Mod</span>
+                
+                <!-- menu-multi first-connect -->
+                <span class="menu-item menu-multi">
+                    Share this number 
+                    <span class="gold" id="your_number"></span>
+                </span>
+                <span class="menu-item menu-multi">OR</span>
+                <input class="menu-item menu-multi" id="another_number_input"></input>
+                <!-- menu-multi restart -->
+                <span class="menu-item" id="again">
+                    waiting for
+                    <span class="gold" id="another_number"></span>
+                </span>
+
+                <!-- menu-gameOver -->
+                <span class="menu-item gold" id="enter">Enter</span>
+                
+                <!-- menu-forTitan -->
+                <span class="menu-item gold" id="forTitan">
+                    Don't sit infront of your computer for too long.
+                    You have to get up and move around occasionally.
+                </span>
+                <span class="menu-item" id="back">Back</span>    
+            </div>
+        </div>
+    </div>
+    <script src="./dest/game.min.js"></script>
+</body>
+</html>
